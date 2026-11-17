@@ -2,14 +2,12 @@
   "_note": "Edit this file, then run: python3 scripts/build_assets.py",
   "name": "mlum",
   "tagline": "music × code",
-  "greeting": "ようこそ ♡ welcome to my corner of the web",
   "window_title": "~ about_me.exe ~",
   "bio": [
     "Music and computer lover.",
     "Currently studying at 42 Lyon."
   ],
-  "kaomoji": "(≧◡≦) ♡",
-  "avatar": "",
+  "avatars": ["art/avatar-1.png", "art/avatar-2.jpg"],
   "skills": {
     "Languages": ["C", "C++", "TypeScript", "JavaScript", "HTML", "CSS", "SQL", "Bash", "Java (basics)"],
     "Web": ["React", "Figma", "Node.js", "NestJS", "REST API", "WebSocket", "Colyseus", "Prisma", "PostgreSQL"],
