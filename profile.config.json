@@ -9,7 +9,6 @@
   ],
   "avatars": ["art/avatar-1.png", "art/avatar-2.jpg"],
   "card_style": "grid",
-  "wordmark": "pixel",
   "skills": {
     "Languages": ["C", "C++", "TypeScript", "JavaScript", "HTML", "CSS", "SQL", "Bash", "Java (basics)"],
     "Web": ["React", "Figma", "Node.js", "NestJS", "REST API", "WebSocket", "Colyseus", "Prisma", "PostgreSQL"],
