@@ -33,7 +33,9 @@ ACCENT = "#8f72e8"     # the violet
 ACCENT_HI = "#b7a3f5"  # soft violet: glyphs, sparkles, highlights
 TEXT = "#ece7fb"       # near-white lavender
 MUTED = "#a79ccb"      # secondary text
-PLUM = "#a24d9c"       # one small warm note: close buttons
+PLUM = "#a24d9c"       # close buttons
+ROSE = "#e7a6cf"       # soft powder pink: only ever the warm end of a gradient
+ROSE_DEEP = "#b8689f"  # muted mauve-pink
 
 SANS = "'Trebuchet MS', 'Segoe UI', Verdana, sans-serif"
 MONO = "'Courier New', ui-monospace, Menlo, Consolas, monospace"
@@ -128,10 +130,10 @@ CHROME_DEFS = (
     # violet chrome for the big titles
     '<linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1">'
     '<stop offset="0" stop-color="#ffffff"/><stop offset="0.45" stop-color="#f1ecff"/>'
-    '<stop offset="0.5" stop-color="#cbbff7"/><stop offset="1" stop-color="#8d75e0"/></linearGradient>'
+    '<stop offset="0.5" stop-color="#d4c6fa"/><stop offset="1" stop-color="#c38fd4"/></linearGradient>'
     # window title bars
     '<linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">'
-    '<stop offset="0" stop-color="#6a50c0"/><stop offset="1" stop-color="#3a2874"/></linearGradient>'
+    '<stop offset="0" stop-color="#6a50c0"/><stop offset="1" stop-color="#9a5ca8"/></linearGradient><linearGradient id="edge" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8f72e8"/><stop offset="1" stop-color="#e7a6cf"/></linearGradient>'
     # glossy window buttons: violet (min/max) and plum (close)
     '<linearGradient id="btn" x1="0" y1="0" x2="0" y2="1">'
     '<stop offset="0" stop-color="#d5c8fb"/><stop offset="0.5" stop-color="#9c84ee"/>'
@@ -159,7 +161,7 @@ CONTROL_DEFS = (
     f'<stop offset="0" stop-color="#ffffff"/><stop offset="0.6" stop-color="#d4c8fa"/>'
     f'<stop offset="1" stop-color="{ACCENT}"/></radialGradient>'
     '<linearGradient id="seekfill" x1="0" y1="0" x2="1" y2="0">'
-    f'<stop offset="0" stop-color="{ACCENT}"/><stop offset="1" stop-color="{ACCENT_HI}"/></linearGradient>'
+    f'<stop offset="0" stop-color="{ACCENT}"/><stop offset="1" stop-color="{ROSE}"/></linearGradient>'
     '<linearGradient id="eq" x1="0" y1="0" x2="0" y2="1">'
     f'<stop offset="0" stop-color="#d8ccfa"/><stop offset="1" stop-color="{ACCENT}"/></linearGradient>'
 )
@@ -261,29 +263,110 @@ def card_bg(style, w, h, seed=1):
 
 
 # ---- assets ----------------------------------------------------------------
+# 5x7 pixel font, lowercase. Rows 0-6 sit on the baseline; g j p q y add two descender rows.
+PIXEL_FONT = {
+    "a": [".....", ".....", ".###.", "....#", ".####", "#...#", ".####"],
+    "b": ["#....", "#....", "####.", "#...#", "#...#", "#...#", "####."],
+    "c": [".....", ".....", ".####", "#....", "#....", "#....", ".####"],
+    "d": ["....#", "....#", ".####", "#...#", "#...#", "#...#", ".####"],
+    "e": [".....", ".....", ".###.", "#...#", "#####", "#....", ".####"],
+    "f": ["..##.", ".#...", "####.", ".#...", ".#...", ".#...", ".#..."],
+    "g": [".....", ".....", ".####", "#...#", "#...#", "#...#", ".####", "....#", ".###."],
+    "h": ["#....", "#....", "####.", "#...#", "#...#", "#...#", "#...#"],
+    "i": ["..#..", ".....", ".##..", "..#..", "..#..", "..#..", ".###."],
+    "j": ["...#.", ".....", "..##.", "...#.", "...#.", "...#.", "...#.", "#..#.", ".##.."],
+    "k": ["#....", "#....", "#..#.", "#.#..", "##...", "#.#..", "#..#."],
+    "l": [".##..", "..#..", "..#..", "..#..", "..#..", "..#..", ".###."],
+    "m": [".....", ".....", "####.", "#.#.#", "#.#.#", "#.#.#", "#.#.#"],
+    "n": [".....", ".....", "####.", "#...#", "#...#", "#...#", "#...#"],
+    "o": [".....", ".....", ".###.", "#...#", "#...#", "#...#", ".###."],
+    "p": [".....", ".....", "####.", "#...#", "#...#", "#...#", "####.", "#....", "#...."],
+    "q": [".....", ".....", ".####", "#...#", "#...#", "#...#", ".####", "....#", "....#"],
+    "r": [".....", ".....", "#.##.", "##..#", "#....", "#....", "#...."],
+    "s": [".....", ".....", ".####", "#....", ".###.", "....#", "####."],
+    "t": [".#...", ".#...", "####.", ".#...", ".#...", ".#..#", "..##."],
+    "u": [".....", ".....", "#...#", "#...#", "#...#", "#...#", ".####"],
+    "v": [".....", ".....", "#...#", "#...#", "#...#", ".#.#.", "..#.."],
+    "w": [".....", ".....", "#...#", "#...#", "#.#.#", "#.#.#", ".#.#."],
+    "x": [".....", ".....", "#...#", ".#.#.", "..#..", ".#.#.", "#...#"],
+    "y": [".....", ".....", "#...#", "#...#", "#...#", "#...#", ".####", "....#", ".###."],
+    "z": [".....", ".....", "#####", "...#.", "..#..", ".#...", "#####"],
+    " ": ["...", "...", "...", "...", "...", "...", "..."],
+}
+
+
+def pixel_cells(text):
+    """[(col, row)] of lit pixels and the total width in columns, or None if a character has no glyph."""
+    cells, x = [], 0
+    for ch in text.lower():
+        glyph = PIXEL_FONT.get(ch)
+        if glyph is None:
+            return None
+        for r, row in enumerate(glyph):
+            cells += [(x + c, r) for c, v in enumerate(row) if v == "#"]
+        x += len(glyph[0]) + 1
+    return cells, x - 1
+
+
+def wordmark(cfg, cx, baseline):
+    """The name as a pixel-art wordmark (or as plain chrome text). Returns (defs, markup)."""
+    name = cfg["name"]
+    cells = pixel_cells(name) if cfg.get("wordmark", "pixel") == "pixel" else None
+    if cells is None:
+        t = f'text-anchor="middle" font-family="{SANS}" font-size="96" font-weight="900" letter-spacing="4"'
+        n = escape(name)
+        return "", (
+            '<g filter="url(#glow)">'
+            f'<text x="{cx - 3}" y="{baseline + 1}" {t} fill="#7b8cff" opacity="0.8">{n}</text>'
+            f'<text x="{cx + 3}" y="{baseline + 4}" {t} fill="{ROSE}" opacity="0.8">{n}</text>'
+            f'<text x="{cx}" y="{baseline}" {t} fill="url(#chrome)" stroke="#2a1b55" stroke-width="2.5" '
+            f'paint-order="stroke">{n}</text></g>'
+        )
+    cell, gap = 16, 2
+    pts, cols = cells
+    x0, top = cx - cols * cell / 2, baseline - 7 * cell
+    rects = "".join(f'<rect x="{x0 + c * cell:g}" y="{top + r * cell:g}" width="{cell - gap}" height="{cell - gap}"/>'
+                    for c, r in pts)
+    defs = (
+        f'<g id="wm">{rects}</g>'
+        f'<linearGradient id="wmfill" gradientUnits="userSpaceOnUse" x1="0" y1="{top:g}" x2="0" y2="{baseline:g}">'
+        '<stop offset="0" stop-color="#ffffff"/><stop offset="0.48" stop-color="#eee6ff"/>'
+        f'<stop offset="0.52" stop-color="#d2c2fa"/><stop offset="1" stop-color="{ROSE}"/></linearGradient>'
+    )
+    markup = (
+        '<use href="#wm" transform="translate(6 6)" fill="#160d30" opacity="0.9"/>'  # hard pixel shadow
+        '<g filter="url(#glow)">'
+        '<use href="#wm" transform="translate(-3 0)" fill="#7b8cff" opacity="0.55"/>'
+        f'<use href="#wm" transform="translate(3 0)" fill="{ROSE}" opacity="0.55"/>'
+        '<use href="#wm" fill="url(#wmfill)"/></g>'
+    )
+    return defs, markup
+
+
 def build_banner(cfg):
     w, h = 1000, 300
-    name = escape(cfg["name"])
-    t = f'text-anchor="middle" font-family="{SANS}" font-size="96" font-weight="900" letter-spacing="4"'
+    bg_defs, bg = card_bg("grid", w, h)
+    wm_defs, wm = wordmark(cfg, 500, 166)
     body = (
         f'<clipPath id="clip"><rect width="{w}" height="{h}" rx="14"/></clipPath>'
-        f'<g clip-path="url(#clip)">{mesh(w, h, 50, MESH_HERO, seed=7)}'
+        f'<g clip-path="url(#clip)">{bg}'
+        f'<rect width="{w}" height="{h}" fill="url(#glowl)"/><rect width="{w}" height="{h}" fill="url(#glowr)"/>'
         f'<rect width="{w}" height="{h}" fill="url(#vig)"/>'
-        '<rect x="-200" y="-20" width="90" height="340" fill="#fff" opacity="0.08" transform="skewX(-20)">'
+        '<rect x="-200" y="-20" width="90" height="340" fill="#fff" opacity="0.06" transform="skewX(-20)">'
         '<animate attributeName="x" values="-200;1200" dur="7s" repeatCount="indefinite"/></rect>'
-        f'{sparkles(w, h, 8, 3, 5, 11, avoid=[(300, 80, 700, 228)])}</g>'  # keep the title and tagline clear
-        f'<rect x="3" y="3" width="{w - 6}" height="{h - 6}" rx="12" fill="none" stroke="{ACCENT}" stroke-width="2.5" opacity="0.75"/>'
-        # faint chromatic split: indigo fringe left, violet fringe right, chrome title on top
-        '<g filter="url(#glow)">'
-        f'<text x="497" y="159" {t} fill="#7b8cff" opacity="0.8">{name}</text>'
-        f'<text x="503" y="162" {t} fill="#b86bff" opacity="0.8">{name}</text>'
-        f'<text x="500" y="158" {t} fill="url(#chrome)" stroke="#2a1b55" stroke-width="2.5" paint-order="stroke">{name}</text></g>'
-        f'<text x="500" y="212" text-anchor="middle" font-family="{SANS}" font-size="22" letter-spacing="3" fill="{TEXT}">'
-        f'<tspan fill="{ACCENT_HI}">✦</tspan> {escape(cfg["tagline"])} <tspan fill="{ACCENT_HI}">✦</tspan></text>'
+        f'{sparkles(w, h, 8, 3, 5, 11, colors=("#ffffff", ACCENT_HI, ROSE), avoid=[(290, 40, 710, 228)])}</g>'
+        f'<rect x="2.5" y="2.5" width="{w - 5}" height="{h - 5}" rx="12" fill="none" stroke="url(#edge)" stroke-width="2.5"/>'
+        f'{wm}'
+        f'<text x="500" y="216" text-anchor="middle" font-family="{SANS}" font-size="22" letter-spacing="3" fill="{TEXT}">'
+        f'<tspan fill="{ROSE}">✦</tspan> {escape(cfg["tagline"])} <tspan fill="{ROSE}">✦</tspan></text>'
     )
-    defs = CHROME_DEFS + (
-        '<radialGradient id="vig" cx="0.5" cy="0.5" r="0.7"><stop offset="0.5" stop-color="#000" stop-opacity="0"/>'
-        f'<stop offset="1" stop-color="{INK}" stop-opacity="0.6"/></radialGradient>'
+    defs = CHROME_DEFS + bg_defs + wm_defs + (
+        '<radialGradient id="glowl" cx="0.18" cy="0.25" r="0.55">'
+        f'<stop offset="0" stop-color="{ACCENT}" stop-opacity="0.38"/><stop offset="1" stop-color="{ACCENT}" stop-opacity="0"/></radialGradient>'
+        '<radialGradient id="glowr" cx="0.85" cy="0.85" r="0.55">'
+        f'<stop offset="0" stop-color="{ROSE}" stop-opacity="0.22"/><stop offset="1" stop-color="{ROSE}" stop-opacity="0"/></radialGradient>'
+        '<radialGradient id="vig" cx="0.5" cy="0.5" r="0.75"><stop offset="0.55" stop-color="#000" stop-opacity="0"/>'
+        f'<stop offset="1" stop-color="{INK}" stop-opacity="0.55"/></radialGradient>'
         '<filter id="glow" x="-10%" y="-30%" width="120%" height="160%">'
         '<feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
     )
@@ -305,7 +388,7 @@ def build_divider():
     defs = (
         f'<linearGradient id="wave" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="{w}" y2="0">'
         f'<stop offset="0" stop-color="#5b43ad"/><stop offset="0.5" stop-color="{ACCENT}"/>'
-        f'<stop offset="1" stop-color="#cdbffa"/></linearGradient>'
+        f'<stop offset="1" stop-color="{ROSE}"/></linearGradient>'
     )
     body = (
         f'<g fill="url(#wave)">{bars}</g>'
@@ -495,45 +578,130 @@ def build_about(cfg):
     write("about-window.svg", svg(w, h, body, defs))
 
 
-def build_skills(cfg):
-    """One card per skill category, two per row; an odd last card spans the full width.
+def group_box(bx, by, bw, bh, label):
+    """XP-style group box: a rounded frame whose top border breaks around its label."""
+    r = 8
+    lw = len(label) * 8.1 + 30  # label + leading sparkle + padding
+    gx0, gx1 = bx + 10, bx + 10 + lw
+    frame = (f"M{gx1:g} {by}H{bx + bw - r}Q{bx + bw} {by} {bx + bw} {by + r}V{by + bh - r}"
+             f"Q{bx + bw} {by + bh} {bx + bw - r} {by + bh}H{bx + r}Q{bx} {by + bh} {bx} {by + bh - r}"
+             f"V{by + r}Q{bx} {by} {bx + r} {by}H{gx0:g}")
+    return (
+        f'<rect x="{bx}" y="{by}" width="{bw}" height="{bh}" rx="{r}" fill="{PANEL}" opacity="0.6"/>'
+        f'<path d="{frame}" fill="none" stroke="{LINE_HI}" stroke-width="1.5"/>'
+        f'<text x="{gx0 + 6:g}" y="{by + 5}" font-family="{SANS}" font-size="15" font-weight="700" fill="{TEXT}">'
+        f'<tspan fill="{ROSE}">✦</tspan> {escape(label)}</text>'
+    )
 
-    Cards that share a row share a height. Returns [(category, filename, is_wide)].
-    """
+
+def tab(x, y, w, h, label, active):
+    r = 6
+    d = f"M{x} {y + h}V{y + r}Q{x} {y} {x + r} {y}H{x + w - r}Q{x + w} {y} {x + w} {y + r}V{y + h}"
+    if active:
+        return (
+            f'<path d="{d}Z" fill="{PANEL_HI}"/>'
+            f'<path d="{d}" fill="none" stroke="{LINE_HI}" stroke-width="1.5"/>'
+            f'<path d="M{x + 1} {y + 4}Q{x + 1} {y + 1} {x + r} {y + 1}H{x + w - r}Q{x + w - 1} {y + 1} {x + w - 1} {y + 4}" '
+            'fill="none" stroke="url(#tabhi)" stroke-width="3" stroke-linecap="round"/>'
+            f'<text x="{x + w / 2:g}" y="{y + h / 2 + 5:g}" text-anchor="middle" font-family="{SANS}" font-size="14" '
+            f'font-weight="700" fill="{TEXT}">{escape(label)}</text>'
+        )
+    return (
+        f'<path d="{d}Z" fill="#1a1131" stroke="{LINE}" stroke-width="1.2"/>'
+        f'<text x="{x + w / 2:g}" y="{y + h / 2 + 5:g}" text-anchor="middle" font-family="{SANS}" font-size="13" '
+        f'fill="{MUTED}">{escape(label)}</text>'
+    )
+
+
+def build_skills_window(cfg):
+    """All skill categories in one XP window: decorative tabs, then a group box per category."""
     style = card_style(cfg)
+    w = 1000
+    wx, wy, ww, bar = 20, 20, 960, 34
+    tab_y, tab_h = wy + bar + 12, 30
+    body_x, body_y, body_w = wx + 12, tab_y + tab_h, ww - 24
+    pad, col_gap, row_gap = 22, 18, 26
+    inner_w = body_w - 2 * pad
+    col_w = (inner_w - col_gap) // 2
+
+    def chips(items, bw):
+        placed, x, y = [], 18, 24
+        for i, item in enumerate(items):
+            pw = pill_width(item)
+            if x > 18 and x + pw > bw - 18:
+                x, y = 18, y + 42
+            placed.append((x, y, item, i))
+            x += pw + 10
+        return placed, y + 30 + 18
+
     cats = list(cfg["skills"].items())
-    fills = ["pill", "pill2", "pill3"]
-    cards = []
+    boxes = []
     for idx, (cat, items) in enumerate(cats):
         wide = len(cats) % 2 == 1 and idx == len(cats) - 1
-        w = 990 if wide else 490
-        body, x, y = "", 28, 56
-        for i, item in enumerate(items):
-            if x > 28 and x + pill_width(item) > w - 28:
-                x, y = 28, y + 42
-            pw, el = pill(x, y, item, fills[i % 3])
-            body += el
-            x += pw + 10
-        cards.append({"cat": cat, "body": body, "w": w, "h": y + 52, "row": idx // 2, "wide": wide})
-    row_h = {}
-    for c in cards:
-        row_h[c["row"]] = max(row_h.get(c["row"], 0), c["h"])
-    out = []
-    for c in cards:
-        cat, w, h = c["cat"], c["w"], row_h[c["row"]]
-        bg_defs, bg = card_bg(style, w, h, seed=hash_seed(cat))
-        full = (
-            f'<clipPath id="clip"><rect x="2" y="2" width="{w - 4}" height="{h - 4}" rx="12"/></clipPath>'
-            f'<g clip-path="url(#clip)">{bg}'
-            f'<rect x="12" y="2.5" width="{w - 24}" height="1" fill="#fff" opacity="0.1"/></g>'
-            f'<rect x="2" y="2" width="{w - 4}" height="{h - 4}" rx="12" fill="none" stroke="{LINE}" stroke-width="2"/>'
-            f'<text x="28" y="37" font-family="{SANS}" font-size="20" font-weight="700" letter-spacing="0.5" fill="{TEXT}">'
-            f'<tspan fill="{ACCENT_HI}">✦</tspan> {escape(cat.lower())}</text>{c["body"]}'
-        )
-        name = "skills-%s.svg" % slug(cat)
-        write(name, svg(w, h, full, CHROME_DEFS + bg_defs))
-        out.append((cat, name, c["wide"]))
-    return out
+        bw = inner_w if wide else col_w
+        placed, bh = chips(items, bw)
+        boxes.append({"cat": cat, "bw": bw, "bh": bh, "placed": placed, "row": idx // 2, "col": 0 if wide else idx % 2})
+    rows = sorted({b["row"] for b in boxes})
+    row_h = {r: max(b["bh"] for b in boxes if b["row"] == r) for r in rows}
+    y, row_y = body_y + pad + 6, {}
+    for r in rows:
+        row_y[r] = y
+        y += row_h[r] + row_gap
+    body_h = y - row_gap + pad - body_y
+    status_y = body_y + body_h + 10
+    status_h = 24
+    wh = status_y + status_h - wy
+    h = wy + wh + 20
+
+    fills = ["pill", "pill2", "pill3"]
+    content = ""
+    for b in boxes:
+        bx = body_x + pad + b["col"] * (col_w + col_gap)
+        by, bh = row_y[b["row"]], row_h[b["row"]]
+        content += group_box(bx, by, b["bw"], bh, b["cat"].lower())
+        for x, cy, item, i in b["placed"]:
+            content += pill(bx + x, by + cy, item, fills[i % 3])[1]
+
+    bg_defs, bg = card_bg(style, body_w, body_h)
+    tabs, tx = "", body_x + 10
+    active_tab = ""
+    for label, active in (("Skills", True), ("Projects", False), ("About", False)):
+        tw = len(label) * 9 + 36
+        if active:  # drawn last so it sits over the body's top border
+            active_tab = tab(tx, tab_y - 3, tw, tab_h + 4, label, True)
+        else:
+            tabs += tab(tx, tab_y + 2, tw, tab_h - 2, label, False)
+        tx += tw + 4
+    n_skills = sum(len(v) for v in cfg["skills"].values())
+    status = (
+        f'<rect x="{wx + 1}" y="{status_y}" width="{ww - 2}" height="{status_h}" fill="{PANEL_HI}"/>'
+        f'<rect x="{wx + 1}" y="{status_y}" width="{ww - 2}" height="1" fill="{LINE}"/>'
+        f'<text x="{wx + 16}" y="{status_y + 16}" font-family="{MONO}" font-size="12" fill="{MUTED}">'
+        f'{len(cats)} categories</text>'
+        f'<rect x="{wx + 150}" y="{status_y + 5}" width="1" height="14" fill="{LINE}"/>'
+        f'<text x="{wx + 164}" y="{status_y + 16}" font-family="{MONO}" font-size="12" fill="{MUTED}">'
+        f'{n_skills} skills</text>'
+        + "".join(f'<rect x="{wx + ww - 10 - 4 * i}" y="{status_y + status_h - 6 - 4 * j}" width="2" height="2" fill="{LINE_HI}"/>'
+                  for i in range(3) for j in range(3) if i + j < 3)  # resize grip
+    )
+    defs = CHROME_DEFS + bg_defs + (
+        f'<clipPath id="winclip"><rect x="{wx}" y="{wy}" width="{ww}" height="{wh}" rx="10"/></clipPath>'
+        f'<clipPath id="bodyclip"><rect width="{body_w}" height="{body_h}" rx="6"/></clipPath>'
+        '<linearGradient id="tabhi" x1="0" y1="0" x2="1" y2="0">'
+        f'<stop offset="0" stop-color="{ROSE}"/><stop offset="1" stop-color="{ROSE_DEEP}"/></linearGradient>'
+    )
+    body = (
+        window_chrome(ww, wh, "skills.exe", wx, wy, bar)
+        + tabs
+        + f'<g transform="translate({body_x} {body_y})"><g clip-path="url(#bodyclip)">{bg}</g>'
+        + f'<rect width="{body_w}" height="{body_h}" rx="6" fill="none" stroke="{LINE_HI}" stroke-width="1.5"/></g>'
+        + active_tab
+        + content
+        + f'<g clip-path="url(#winclip)">{status}</g>'
+        + f'<rect x="{wx}" y="{wy}" width="{ww}" height="{wh}" rx="10" fill="none" stroke="{LINE_HI}" stroke-width="2"/>'
+    )
+    write("skills.svg", svg(w, h, body, defs))
+    return "skills.svg"
 
 
 def build_projects(cfg):
@@ -580,16 +748,99 @@ def build_links(cfg):
     return out
 
 
-def build_footer():
-    w, h = 1000, 130
-    body = (
-        f'<clipPath id="clip"><rect width="{w}" height="{h}" rx="14"/></clipPath>'
-        f'<g clip-path="url(#clip)">{mesh(w, h, 50, list(reversed(MESH_HERO)), seed=99)}{sparkles(w, h, 6, 5, 5, 11, avoid=[(270, 40, 730, 100)])}</g>'
-        f'<rect x="3" y="3" width="{w - 6}" height="{h - 6}" rx="12" fill="none" stroke="{ACCENT}" stroke-width="2.5" opacity="0.75"/>'
-        f'<text x="500" y="77" text-anchor="middle" font-family="{SANS}" font-size="30" font-weight="900" '
-        f'fill="url(#chrome)" stroke="#2a1b55" stroke-width="1.5" paint-order="stroke">thanks for stopping by ♡</text>'
+def build_footer(cfg):
+    """A violet 'blue screen' sitting on an XP taskbar."""
+    w, scr_h, tb_h = 1000, 160, 44
+    h = scr_h + tb_h
+    bsod = "#2a1f7a"
+    fs = 17
+    cw = fs * MONO_W
+    name = cfg["name"]
+    lw = (len(name) + 2) * cw + 4
+    stop = "*** STOP: 0x00000042 (THANKS_FOR_STOPPING_BY)"
+    press = "Press any key to continue "
+    px0 = 500 - (len(press) + 1) * cw / 2
+    screen = (
+        f'<rect width="{w}" height="{scr_h}" fill="{bsod}"/>'
+        f'<rect width="{w}" height="{scr_h}" fill="url(#bsglow)"/>'
+        f'<rect x="{500 - lw / 2:g}" y="30" width="{lw:g}" height="26" fill="#d9d0f5"/>'
+        f'<text x="500" y="49" text-anchor="middle" font-family="{MONO}" font-size="{fs}" font-weight="700" '
+        f'fill="{bsod}">{escape(name)}</text>'
+        f'<text x="500" y="92" text-anchor="middle" font-family="{MONO}" font-size="{fs}" fill="{TEXT}">{escape(stop)}</text>'
+        f'<text x="{px0:g}" y="128" font-family="{MONO}" font-size="{fs}" fill="{TEXT}" xml:space="preserve">{escape(press)}</text>'
+        f'<rect x="{px0 + len(press) * cw:g}" y="130" width="{cw:g}" height="3" fill="{TEXT}">'
+        '<animate attributeName="opacity" values="1;0" calcMode="discrete" dur="1.1s" repeatCount="indefinite"/></rect>'
+        f'<rect width="{w}" height="{scr_h}" fill="url(#scan)"/>'
     )
-    write("footer.svg", svg(w, h, body, CHROME_DEFS))
+
+    ty = scr_h
+    cy = ty + tb_h / 2
+    # start button: rounded on the right, flush left (the outer clip rounds the corner)
+    start = (
+        f'<rect x="-24" y="{ty}" width="146" height="{tb_h}" rx="{tb_h / 2:g}" fill="url(#startbtn)"/>'
+        f'<rect x="-24" y="{ty + 2}" width="140" height="{tb_h / 2 - 4:g}" rx="10" fill="#fff" opacity="0.18"/>'
+        f'<rect x="-24" y="{ty}" width="146" height="{tb_h}" rx="{tb_h / 2:g}" fill="none" stroke="#7a3f6e" stroke-width="1"/>'
+    )
+    for (dx, dy), col in zip(((0, 0), (9, 0), (0, 9), (9, 9)), ("#ffffff", "#f6d3ea", "#d9ccfa", "#b7a3f5")):
+        start += f'<rect x="{17 + dx}" y="{cy - 9 + dy:g}" width="8" height="8" rx="1.5" fill="{col}"/>'
+    start += (
+        f'<text x="45" y="{cy + 7:g}" font-family="{SANS}" font-size="20" font-weight="700" font-style="italic" '
+        'fill="#000" opacity="0.3">start</text>'
+        f'<text x="44" y="{cy + 6:g}" font-family="{SANS}" font-size="20" font-weight="700" font-style="italic" '
+        'fill="#fff">start</text>'
+    )
+    tasks, tx = "", 138
+    for label, pressed, icon in (("about_me.exe", False, ROSE), ("skills.exe", True, ACCENT_HI), ("projects", False, "#d9ccfa")):
+        tw = 168
+        tasks += (
+            f'<rect x="{tx}" y="{ty + 7}" width="{tw}" height="{tb_h - 14}" rx="4" '
+            f'fill="url(#{"taskdown" if pressed else "task"})" stroke="{"#1f1550" if pressed else "#8a75e0"}" stroke-width="1"/>'
+            f'<rect x="{tx + 10}" y="{cy - 6:g}" width="12" height="12" rx="2.5" fill="{icon}"/>'
+            f'<text x="{tx + 30}" y="{cy + 5:g}" font-family="{SANS}" font-size="13" '
+            f'font-weight="{700 if pressed else 400}" fill="#fff">{escape(label)}</text>'
+        )
+        tx += tw + 6
+    trx = 838
+    tray = (
+        f'<rect x="{trx}" y="{ty}" width="{w - trx}" height="{tb_h}" fill="url(#tray)"/>'
+        f'<rect x="{trx}" y="{ty}" width="1" height="{tb_h}" fill="#7d68d8"/>'
+        # volume
+        f'<path d="M{trx + 18} {cy - 3:g}h3l5 -4v14l-5 -4h-3z" fill="{TEXT}"/>'
+        f'<path d="M{trx + 29} {cy - 4:g}q4 4 0 8" fill="none" stroke="{TEXT}" stroke-width="1.6" stroke-linecap="round"/>'
+        # signal bars
+        + "".join(f'<rect x="{trx + 46 + 5 * i}" y="{cy + 6 - 4 * (i + 1):g}" width="3" height="{4 * (i + 1)}" fill="{TEXT}" '
+                  f'opacity="{0.55 + 0.15 * i:g}"/>' for i in range(3))
+        + f'<text x="{w - 46}" y="{cy + 5:g}" text-anchor="middle" font-family="{SANS}" font-size="14" fill="#fff">00:42</text>'
+    )
+    taskbar = (
+        f'<rect y="{ty}" width="{w}" height="{tb_h}" fill="url(#taskbar)"/>'
+        f'<rect y="{ty}" width="{w}" height="1.5" fill="#a08cf0"/>'
+        + tasks + tray + start
+    )
+    defs = CHROME_DEFS + (
+        f'<clipPath id="clip"><rect width="{w}" height="{h}" rx="14"/></clipPath>'
+        '<radialGradient id="bsglow" cx="0.92" cy="1" r="0.6">'
+        f'<stop offset="0" stop-color="{ROSE}" stop-opacity="0.22"/><stop offset="1" stop-color="{ROSE}" stop-opacity="0"/></radialGradient>'
+        '<pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse">'
+        '<rect width="4" height="1.5" fill="#000" opacity="0.14"/></pattern>'
+        '<linearGradient id="taskbar" x1="0" y1="0" x2="0" y2="1">'
+        '<stop offset="0" stop-color="#6650c2"/><stop offset="0.15" stop-color="#4b379f"/>'
+        '<stop offset="0.6" stop-color="#3b2b88"/><stop offset="1" stop-color="#2d2070"/></linearGradient>'
+        '<linearGradient id="startbtn" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0" stop-color="#f2c3df"/><stop offset="0.45" stop-color="#d48dbb"/>'
+        f'<stop offset="0.55" stop-color="{ROSE_DEEP}"/><stop offset="1" stop-color="#8c4a80"/></linearGradient>'
+        '<linearGradient id="task" x1="0" y1="0" x2="0" y2="1">'
+        '<stop offset="0" stop-color="#6b57c8"/><stop offset="1" stop-color="#4a379c"/></linearGradient>'
+        '<linearGradient id="taskdown" x1="0" y1="0" x2="0" y2="1">'
+        '<stop offset="0" stop-color="#241a5c"/><stop offset="1" stop-color="#34267c"/></linearGradient>'
+        '<linearGradient id="tray" x1="0" y1="0" x2="0" y2="1">'
+        '<stop offset="0" stop-color="#4a38a4"/><stop offset="1" stop-color="#2a1e68"/></linearGradient>'
+    )
+    body = (
+        f'<g clip-path="url(#clip)">{screen}{taskbar}</g>'
+        f'<rect x="1.5" y="1.5" width="{w - 3}" height="{h - 3}" rx="13" fill="none" stroke="url(#edge)" stroke-width="2.5"/>'
+    )
+    write("footer.svg", svg(w, h, body, defs))
 
 
 # ---- README ----------------------------------------------------------------
@@ -609,14 +860,13 @@ def table(cells):
 
 def build_readme(cfg, skills, projects, links):
     divider = '<img src="assets/divider.svg" alt="" width="100%"/>'
+    skills_alt = "; ".join("%s: %s" % (cat, ", ".join(items)) for cat, items in cfg["skills"].items())
     r = ['<div align="center">', "",
          '<img src="assets/banner.svg" alt="%s - %s" width="100%%"/>' % (attr(cfg["name"]), attr(cfg["tagline"])), "",
          '<img src="assets/about-window.svg" alt="About me: %s" width="100%%"/>' % attr(" ".join(cfg["bio"])), "",
+         divider, "",
+         '<img src="assets/%s" alt="Skills. %s" width="100%%"/>' % (skills, attr(skills_alt)), "",
          divider, ""]
-    r += table([('<img src="assets/%s" alt="%s: %s" width="100%%"/>'
-                 % (name, attr(cat), attr(", ".join(cfg["skills"][cat]))), 2 if wide else 1)
-                for cat, name, wide in skills])
-    r += [divider, ""]
     r += table([('<a href="%s"><img src="assets/%s" alt="%s: %s" width="100%%"/></a>'
                  % (attr(p["url"]), name, attr(p["name"]), attr(p["description"])), 1)
                 for p, name in projects])
@@ -624,7 +874,8 @@ def build_readme(cfg, skills, projects, links):
     if links:
         r += ["<p>" + " ".join('<a href="%s"><img src="assets/%s" alt="%s" height="44"/></a>'
                                % (attr(ln["url"]), name, attr(ln["label"])) for ln, name in links) + "</p>", ""]
-    r += ['<img src="assets/footer.svg" alt="thanks for stopping by" width="100%"/>', "", "</div>", ""]
+    r += ['<img src="assets/footer.svg" alt="*** STOP: 0x00000042 (THANKS_FOR_STOPPING_BY)" width="100%"/>', "",
+          "</div>", ""]
     (ROOT / "README.md").write_text("\n".join(r), encoding="utf-8")
     print("  wrote README.md")
 
@@ -640,10 +891,10 @@ def main():
     build_banner(cfg)
     build_divider()
     build_about(cfg)
-    skills = build_skills(cfg)
+    skills = build_skills_window(cfg)
     projects = build_projects(cfg)
     links = build_links(cfg)
-    build_footer()
+    build_footer(cfg)
     build_readme(cfg, skills, projects, links)
     print("done.")
 

@@ -6,11 +6,7 @@
 
 <img src="assets/divider.svg" alt="" width="100%"/>
 
-<table width="100%">
-<tr><td align="center" valign="top"><img src="assets/skills-languages.svg" alt="Languages: C, C++, TypeScript, JavaScript, HTML, CSS, SQL, Bash, Java (basics)" width="100%"/></td><td align="center" valign="top"><img src="assets/skills-web.svg" alt="Web: React, Figma, Node.js, NestJS, REST API, WebSocket, Colyseus, Prisma, PostgreSQL" width="100%"/></td></tr>
-<tr><td align="center" valign="top"><img src="assets/skills-systems-network.svg" alt="Systems &amp; Network: Linux, Unix, System programming, Multithreading, TCP/IP sockets, poll()" width="100%"/></td><td align="center" valign="top"><img src="assets/skills-devops-tools.svg" alt="DevOps &amp; Tools: Docker, Docker Compose, Nginx (TLS), CI/CD, GitHub Actions, Git, GitHub, Makefile, Valgrind, Claude" width="100%"/></td></tr>
-<tr><td align="center" valign="top" colspan="2"><img src="assets/skills-methods.svg" alt="Methods: OOP, Unit tests, Code review, Pull requests, Kanban, Team coordination" width="100%"/></td></tr>
-</table>
+<img src="assets/skills.svg" alt="Skills. Languages: C, C++, TypeScript, JavaScript, HTML, CSS, SQL, Bash, Java (basics); Web: React, Figma, Node.js, NestJS, REST API, WebSocket, Colyseus, Prisma, PostgreSQL; Systems &amp; Network: Linux, Unix, System programming, Multithreading, TCP/IP sockets, poll(); DevOps &amp; Tools: Docker, Docker Compose, Nginx (TLS), CI/CD, GitHub Actions, Git, GitHub, Makefile, Valgrind, Claude; Methods: OOP, Unit tests, Code review, Pull requests, Kanban, Team coordination" width="100%"/>
 
 <img src="assets/divider.svg" alt="" width="100%"/>
 
@@ -21,6 +17,6 @@
 
 <img src="assets/divider.svg" alt="" width="100%"/>
 
-<img src="assets/footer.svg" alt="thanks for stopping by" width="100%"/>
+<img src="assets/footer.svg" alt="*** STOP: 0x00000042 (THANKS_FOR_STOPPING_BY)" width="100%"/>
 
 </div>
