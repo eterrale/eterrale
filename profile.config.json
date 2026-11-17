@@ -1,0 +1,47 @@
+{
+  "_note": "Edit this file, then run: python3 scripts/build_assets.py",
+  "name": "mlum",
+  "tagline": "music × code",
+  "greeting": "ようこそ ♡ welcome to my corner of the web",
+  "window_title": "~ about_me.exe ~",
+  "bio": [
+    "Music and computer lover.",
+    "Currently studying at 42 Lyon."
+  ],
+  "kaomoji": "(≧◡≦) ♡",
+  "avatar": "",
+  "skills": {
+    "Languages": ["C", "C++", "TypeScript", "JavaScript", "HTML", "CSS", "SQL", "Bash", "Java (basics)"],
+    "Web": ["React", "Figma", "Node.js", "NestJS", "REST API", "WebSocket", "Colyseus", "Prisma", "PostgreSQL"],
+    "Systems & Network": ["Linux", "Unix", "System programming", "Multithreading", "TCP/IP sockets", "poll()"],
+    "DevOps & Tools": ["Docker", "Docker Compose", "Nginx (TLS)", "CI/CD", "GitHub Actions", "Git", "GitHub", "Makefile", "Valgrind", "Claude"],
+    "Methods": ["OOP", "Unit tests", "Code review", "Pull requests", "Kanban", "Team coordination"]
+  },
+  "projects": [
+    {
+      "name": "ft_transcendence",
+      "description": "Real-time multiplayer web game (Undercover), built with a team of 4.",
+      "tags": ["React", "TypeScript", "NestJS", "PostgreSQL", "Docker"],
+      "url": "https://github.com/lcalero42/ft_transcendence"
+    },
+    {
+      "name": "cub3D",
+      "description": "Real-time pseudo-3D renderer using raycasting, textures and player movement.",
+      "tags": ["C", "Raycasting"],
+      "url": "https://github.com/lcalero42/cub3d"
+    },
+    {
+      "name": "Minishell",
+      "description": "A Unix shell written in C: parsing, fork/exec, pipes, redirections and signals.",
+      "tags": ["C", "Unix"],
+      "url": "https://github.com/lcalero42/Minishell"
+    },
+    {
+      "name": "ft_IRC",
+      "description": "Non-blocking multi-client IRC server in C++98 with channels and operator commands.",
+      "tags": ["C++98", "Sockets", "poll()"],
+      "url": "https://github.com/ketodin/ft_IRC"
+    }
+  ],
+  "links": []
+}
