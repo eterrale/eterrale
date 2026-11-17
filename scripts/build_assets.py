@@ -288,17 +288,16 @@ def build_banner(cfg):
     # the name as an inverted BSOD-style label, same as the footer's, scaled up
     fs = 80
     lw = (len(cfg["name"]) + 2) * fs * MONO_W + 4
-    lh, ly = 112, 58
+    lh = 112
+    ly = (h - lh) // 2  # vertically centred
     body = (
         f'<clipPath id="clip"><rect width="{w}" height="{h}" rx="14"/></clipPath>'
         f'<g clip-path="url(#clip)">{screen_bg}'
-        f'{sparkles(w, h, 14, 3, avoid=[(300, 40, 700, 232)])}</g>'
+        f'{sparkles(w, h, 14, 3, avoid=[(300, ly - 25, 700, ly + lh + 25)])}</g>'
         f'<rect x="3" y="3" width="{w - 6}" height="{h - 6}" rx="12" fill="none" stroke="#fff" stroke-width="3" opacity="0.9"/>'
         f'<rect x="{500 - lw / 2:g}" y="{ly}" width="{lw:g}" height="{lh}" fill="{ICE}"/>'
         f'<text x="500" y="{ly + lh / 2 + fs * 0.35:g}" text-anchor="middle" font-family="{MONO}" font-size="{fs}" '
         f'font-weight="700" fill="{SCREEN}">{escape(cfg["name"])}</text>'
-        f'<text x="500" y="218" text-anchor="middle" font-family="{MONO}" font-size="22" fill="#fff" xml:space="preserve">'
-        f'*  {escape(cfg["tagline"])}  *</text>'
     )
     write("banner.svg", svg(w, h, body, CHROME_DEFS + crt_defs))
 
@@ -713,7 +712,7 @@ def table(cells):
 def build_readme(cfg, skills, projects, links):
     divider = '<img src="assets/divider.svg" alt="" width="100%"/>'
     r = ['<div align="center">', "",
-         '<img src="assets/banner.svg" alt="%s - %s" width="100%%"/>' % (attr(cfg["name"]), attr(cfg["tagline"])), "",
+         '<img src="assets/banner.svg" alt="%s" width="100%%"/>' % attr(cfg["name"]), "",
          '<img src="assets/about-window.svg" alt="About me: %s" width="100%%"/>' % attr(" ".join(cfg["bio"])), "",
          divider, ""]
     r += table([('<img src="assets/%s" alt="%s: %s" width="100%%"/>'

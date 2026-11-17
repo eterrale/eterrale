@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/banner.svg" alt="mlum - music × code" width="100%"/>
+<img src="assets/banner.svg" alt="mlum" width="100%"/>
 
 <img src="assets/about-window.svg" alt="About me: Music and computer lover. Currently studying at 42 Lyon." width="100%"/>
 
