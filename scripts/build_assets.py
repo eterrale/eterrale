@@ -75,31 +75,33 @@ def data_uri(path):
     return "data:%s;base64,%s" % (mime, base64.b64encode(path.read_bytes()).decode())
 
 
+# Vertical nudge (as a fraction of the font size) that puts each glyph's ink on the centre line.
+ASCII_DY = {".": -0.28, "'": 0.3, "*": 0.22, "+": 0.0, "x": 0.05, "o": 0.05, "O": 0.0}
+
+
+def ascii_twinkle(x, y, size, frames, delay, color, dur):
+    """An ASCII character that twinkles by flipping through `frames` (one <text> per frame, shown in turn)."""
+    n = len(frames)
+    key_times = ";".join("%.4g" % (k / n) for k in range(n))
+    out = f'<g font-family="{MONO}" font-size="{size:.1f}" font-weight="700" fill="{color}" text-anchor="middle" dominant-baseline="central">'
+    for k, ch in enumerate(frames):
+        vals = ";".join("1" if j == k else "0" for j in range(n))
+        out += (
+            f'<text x="{x:.1f}" y="{y + ASCII_DY.get(ch, 0) * size:.1f}" opacity="{1 if k == 0 else 0}">{escape(ch)}'
+            f'<animate attributeName="opacity" values="{vals}" keyTimes="{key_times}" calcMode="discrete" '
+            f'dur="{dur:g}s" begin="{-delay:g}s" repeatCount="indefinite"/></text>'
+        )
+    return out + "</g>"
+
+
 def sparkle(x, y, r, delay=0.0, color="#ffffff", dur=3.0):
-    """Solid 4-point star that pulses."""
-    d = "M0 %g Q0 0 %g 0 Q0 0 0 %g Q0 0 %g 0 Q0 0 0 %g Z" % (-r, r, r, -r, -r)
-    return (
-        '<g transform="translate(%.1f %.1f)"><g>'
-        '<path d="%s" fill="%s"/>'
-        '<animateTransform attributeName="transform" type="scale" values="0.35;1;0.35" '
-        'dur="%gs" begin="%gs" repeatCount="indefinite"/>'
-        '<animate attributeName="opacity" values="0.25;1;0.25" dur="%gs" begin="%gs" repeatCount="indefinite"/>'
-        "</g></g>" % (x, y, d, color, dur, delay, dur, delay)
-    )
+    """ASCII star: . + * + (r is roughly the old star radius)."""
+    return ascii_twinkle(x, y, r * 2.4, (".", "+", "*", "+"), delay, color, dur)
 
 
 def line_sparkle(x, y, r, delay=0.0, color="#ffffff", dur=3.6):
-    """Thin 4-point sparkle: a plus with a gap in the middle and short diagonal ticks."""
-    g, a, b = r * 0.3, r * 0.4, r * 0.62
-    d = (f"M0 {-r:g}V{-g:g}M0 {g:g}V{r:g}M{-r:g} 0H{-g:g}M{g:g} 0H{r:g}"
-         f"M{a:g} {-a:g}L{b:g} {-b:g}M{-a:g} {-a:g}L{-b:g} {-b:g}"
-         f"M{a:g} {a:g}L{b:g} {b:g}M{-a:g} {a:g}L{-b:g} {b:g}")
-    return (
-        f'<g transform="translate({x:.1f} {y:.1f})"><path d="{d}" fill="none" stroke="{color}" '
-        'stroke-width="1.6" stroke-linecap="round">'
-        f'<animate attributeName="opacity" values="0.3;1;0.3" dur="{dur:g}s" begin="{delay:g}s" repeatCount="indefinite"/>'
-        "</path></g>"
-    )
+    """Lighter ASCII sparkle: ' + x + ."""
+    return ascii_twinkle(x, y, r * 1.7, ("'", "+", "x", "+", "."), delay, color, dur)
 
 
 def sparkles(w, h, n, seed, rmin=5, rmax=13, colors=("#ffffff", ICE_BLUE, PINK_SOFT), box=None, line_ratio=0.3,
@@ -282,27 +284,23 @@ def crt(w, h):
 # ---- assets ----------------------------------------------------------------
 def build_banner(cfg):
     w, h = 1000, 300
-    name = escape(cfg["name"])
-    t = f'text-anchor="middle" font-family="{SANS}" font-size="96" font-weight="900" letter-spacing="4"'
     crt_defs, screen_bg = crt(w, h)
+    # the name as an inverted BSOD-style label, same as the footer's, scaled up
+    fs = 80
+    lw = (len(cfg["name"]) + 2) * fs * MONO_W + 4
+    lh, ly = 112, 58
     body = (
         f'<clipPath id="clip"><rect width="{w}" height="{h}" rx="14"/></clipPath>'
         f'<g clip-path="url(#clip)">{screen_bg}'
-        f'{sparkles(w, h, 14, 3, avoid=[(290, 70, 710, 228)])}</g>'
+        f'{sparkles(w, h, 14, 3, avoid=[(300, 40, 700, 232)])}</g>'
         f'<rect x="3" y="3" width="{w - 6}" height="{h - 6}" rx="12" fill="none" stroke="#fff" stroke-width="3" opacity="0.9"/>'
-        # chromatic split: cyan fringe left, pink fringe right, chrome title on top
-        '<g filter="url(#glow)">'
-        f'<text x="495" y="159" {t} fill="{CYAN}" opacity="0.9">{name}</text>'
-        f'<text x="505" y="164" {t} fill="{PINK}" opacity="0.9">{name}</text>'
-        f'<text x="500" y="158" {t} fill="url(#chrome)" stroke="{VIOLET}" stroke-width="2.5" paint-order="stroke">{name}</text></g>'
-        f'<text x="500" y="212" text-anchor="middle" font-family="{SANS}" font-size="24" letter-spacing="3" fill="#fff">'
-        f'✦ {escape(cfg["tagline"])} ✦</text>'
+        f'<rect x="{500 - lw / 2:g}" y="{ly}" width="{lw:g}" height="{lh}" fill="{ICE}"/>'
+        f'<text x="500" y="{ly + lh / 2 + fs * 0.35:g}" text-anchor="middle" font-family="{MONO}" font-size="{fs}" '
+        f'font-weight="700" fill="{SCREEN}">{escape(cfg["name"])}</text>'
+        f'<text x="500" y="218" text-anchor="middle" font-family="{MONO}" font-size="22" fill="#fff" xml:space="preserve">'
+        f'*  {escape(cfg["tagline"])}  *</text>'
     )
-    defs = CHROME_DEFS + crt_defs + (
-        '<filter id="glow" x="-10%" y="-30%" width="120%" height="160%">'
-        '<feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
-    )
-    write("banner.svg", svg(w, h, body, defs))
+    write("banner.svg", svg(w, h, body, CHROME_DEFS + crt_defs))
 
 
 def build_divider():
