@@ -21,25 +21,28 @@ from gen_lowpoly import mesh  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "assets"
 
-# ---- palette ---------------------------------------------------------------
-VIOLET_DARK = "#1a0b2e"
-VIOLET = "#2d1458"
-PURPLE = "#5b2a9e"
-ORCHID = "#c77dff"
-LAVENDER = "#e0b8ff"
-PINK = "#ff4fa3"
-PINK_SOFT = "#ff9ad0"
-ICE = "#e8f4ff"
-ICE_BLUE = "#9fd8ff"
-LIME = "#b6ff3b"  # acid accent (jet-set-radio green), used sparingly
-CYAN = "#3be8ff"  # chromatic-aberration accent
+# ---- palette: sober violet -------------------------------------------------------
+# One violet family plus a near-white lavender for text. Change colours here only.
+INK = "#0d0818"        # deepest violet-black: tracks, screen background
+PANEL = "#130c23"      # window / card body
+PANEL_HI = "#1e1436"   # top of panels, menu bars
+RAISED = "#2b1f4f"     # control strip, raised surfaces
+LINE = "#4a3a80"       # hairline borders
+LINE_HI = "#6f5bb8"    # emphasised borders
+ACCENT = "#8f72e8"     # the violet
+ACCENT_HI = "#b7a3f5"  # soft violet: glyphs, sparkles, highlights
+TEXT = "#ece7fb"       # near-white lavender
+MUTED = "#a79ccb"      # secondary text
+PLUM = "#a24d9c"       # one small warm note: close buttons
 
 SANS = "'Trebuchet MS', 'Segoe UI', Verdana, sans-serif"
 MONO = "'Courier New', ui-monospace, Menlo, Consolas, monospace"
 MONO_W = 0.6  # approx glyph width / font-size for the mono stack
 
-MESH_BRIGHT = [VIOLET_DARK, PURPLE, "#a23fc4", PINK]
-MESH_DARK = ["#150829", "#241046", "#3a1670", "#5a1f8a"]
+MESH_HERO = [INK, "#22154a", "#3d2a85", "#6a50c0"]  # banner / footer low-poly
+MESH_CARD = ["#0f0820", "#190f33", "#241649", "#2f1d5c"]  # only used by card_style "lowpoly"
+
+CARD_STYLES = ("flat", "glow", "grid", "dither", "lowpoly")
 
 
 # ---- helpers ---------------------------------------------------------------
@@ -70,6 +73,10 @@ def data_uri(path):
     return "data:%s;base64,%s" % (mime, base64.b64encode(path.read_bytes()).decode())
 
 
+def hash_seed(s):
+    return sum(ord(c) * (i + 1) for i, c in enumerate(s))
+
+
 def sparkle(x, y, r, delay=0.0, color="#ffffff", dur=3.0):
     """Solid 4-point star that pulses."""
     d = "M0 %g Q0 0 %g 0 Q0 0 0 %g Q0 0 %g 0 Q0 0 0 %g Z" % (-r, r, r, -r, -r)
@@ -97,13 +104,18 @@ def line_sparkle(x, y, r, delay=0.0, color="#ffffff", dur=3.6):
     )
 
 
-def sparkles(w, h, n, seed, rmin=5, rmax=13, colors=("#ffffff", ICE_BLUE, PINK_SOFT), box=None, line_ratio=0.3):
-    """n random sparkles (a mix of solid and thin-line ones) inside `box`."""
+def sparkles(w, h, n, seed, rmin=5, rmax=13, colors=("#ffffff", ACCENT_HI, "#d8ccfa"), box=None, line_ratio=0.3,
+             avoid=()):
+    """n random sparkles (a mix of solid and thin-line ones) inside `box`, never inside an `avoid` rectangle."""
     rng = random.Random(seed)
     x0, y0, x1, y1 = box or (15, 12, w - 15, h - 12)
     out = []
     for _ in range(n):
-        x, y, r = rng.uniform(x0, x1), rng.uniform(y0, y1), rng.uniform(rmin, rmax)
+        for _try in range(30):
+            x, y = rng.uniform(x0, x1), rng.uniform(y0, y1)
+            if not any(ax0 <= x <= ax1 and ay0 <= y <= ay1 for ax0, ay0, ax1, ay1 in avoid):
+                break
+        r = rng.uniform(rmin, rmax)
         delay, color, dur = rng.uniform(0, 3), rng.choice(colors), rng.uniform(2.4, 4.2)
         if rng.random() < line_ratio:
             out.append(line_sparkle(x, y, r * 1.3, delay, color, dur))
@@ -113,46 +125,54 @@ def sparkles(w, h, n, seed, rmin=5, rmax=13, colors=("#ffffff", ICE_BLUE, PINK_S
 
 
 CHROME_DEFS = (
+    # violet chrome for the big titles
     '<linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1">'
-    f'<stop offset="0" stop-color="#ffffff"/><stop offset="0.45" stop-color="{ICE}"/>'
-    f'<stop offset="0.5" stop-color="{ICE_BLUE}"/><stop offset="1" stop-color="{ORCHID}"/></linearGradient>'
+    '<stop offset="0" stop-color="#ffffff"/><stop offset="0.45" stop-color="#f1ecff"/>'
+    '<stop offset="0.5" stop-color="#cbbff7"/><stop offset="1" stop-color="#8d75e0"/></linearGradient>'
+    # window title bars
     '<linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">'
-    f'<stop offset="0" stop-color="{PINK}"/><stop offset="1" stop-color="{PURPLE}"/></linearGradient>'
-    '<linearGradient id="pill" x1="0" y1="0" x2="0" y2="1">'
-    f'<stop offset="0" stop-color="#ffffff"/><stop offset="0.5" stop-color="{ICE}"/>'
-    f'<stop offset="1" stop-color="{LAVENDER}"/></linearGradient>'
-    # glossy XP-style window buttons: lilac (min/max) and hot pink (close)
+    '<stop offset="0" stop-color="#6a50c0"/><stop offset="1" stop-color="#3a2874"/></linearGradient>'
+    # glossy window buttons: violet (min/max) and plum (close)
     '<linearGradient id="btn" x1="0" y1="0" x2="0" y2="1">'
-    '<stop offset="0" stop-color="#e9d9ff"/><stop offset="0.5" stop-color="#b98cff"/>'
-    '<stop offset="0.52" stop-color="#9a62f0"/><stop offset="1" stop-color="#7a3fd8"/></linearGradient>'
+    '<stop offset="0" stop-color="#d5c8fb"/><stop offset="0.5" stop-color="#9c84ee"/>'
+    '<stop offset="0.52" stop-color="#7c61d6"/><stop offset="1" stop-color="#5a42b0"/></linearGradient>'
     '<linearGradient id="btnx" x1="0" y1="0" x2="0" y2="1">'
-    '<stop offset="0" stop-color="#ffd6ea"/><stop offset="0.5" stop-color="#ff86bd"/>'
-    '<stop offset="0.52" stop-color="#ff4fa3"/><stop offset="1" stop-color="#e0246f"/></linearGradient>'
+    '<stop offset="0" stop-color="#ecc4ea"/><stop offset="0.5" stop-color="#c476bc"/>'
+    f'<stop offset="0.52" stop-color="{PLUM}"/><stop offset="1" stop-color="#7a3376"/></linearGradient>'
+    # skill chips: three close tones of violet
+    '<linearGradient id="pill" x1="0" y1="0" x2="0" y2="1">'
+    '<stop offset="0" stop-color="#3f2e76"/><stop offset="1" stop-color="#2a1e52"/></linearGradient>'
+    '<linearGradient id="pill2" x1="0" y1="0" x2="0" y2="1">'
+    '<stop offset="0" stop-color="#4a3786"/><stop offset="1" stop-color="#33255f"/></linearGradient>'
+    '<linearGradient id="pill3" x1="0" y1="0" x2="0" y2="1">'
+    '<stop offset="0" stop-color="#36306f"/><stop offset="1" stop-color="#252058"/></linearGradient>'
 )
 
 # extra gradients for the media-player strip in the about window
 CONTROL_DEFS = (
     '<linearGradient id="ctrl" x1="0" y1="0" x2="0" y2="1">'
-    '<stop offset="0" stop-color="#3a1b72"/><stop offset="1" stop-color="#1c0a3a"/></linearGradient>'
+    f'<stop offset="0" stop-color="{RAISED}"/><stop offset="1" stop-color="#170f2c"/></linearGradient>'
     '<radialGradient id="playbtn" cx="0.4" cy="0.3" r="0.8">'
-    '<stop offset="0" stop-color="#ffd6ec"/><stop offset="0.55" stop-color="#ff4fa3"/>'
-    '<stop offset="1" stop-color="#b8186a"/></radialGradient>'
+    f'<stop offset="0" stop-color="#d9ccfb"/><stop offset="0.55" stop-color="{ACCENT}"/>'
+    '<stop offset="1" stop-color="#4a359a"/></radialGradient>'
     '<radialGradient id="knob" cx="0.4" cy="0.35" r="0.7">'
-    f'<stop offset="0" stop-color="#f6ffd6"/><stop offset="0.6" stop-color="{LIME}"/>'
-    '<stop offset="1" stop-color="#63b800"/></radialGradient>'
+    f'<stop offset="0" stop-color="#ffffff"/><stop offset="0.6" stop-color="#d4c8fa"/>'
+    f'<stop offset="1" stop-color="{ACCENT}"/></radialGradient>'
     '<linearGradient id="seekfill" x1="0" y1="0" x2="1" y2="0">'
-    f'<stop offset="0" stop-color="{PINK}"/><stop offset="1" stop-color="{ORCHID}"/></linearGradient>'
+    f'<stop offset="0" stop-color="{ACCENT}"/><stop offset="1" stop-color="{ACCENT_HI}"/></linearGradient>'
+    '<linearGradient id="eq" x1="0" y1="0" x2="0" y2="1">'
+    f'<stop offset="0" stop-color="#d8ccfa"/><stop offset="1" stop-color="{ACCENT}"/></linearGradient>'
 )
 
 
-def window_chrome(w, h, title, x=0, y=0, bar=34, body_fill=VIOLET_DARK):
-    """A Y2K / XP-style window: glossy gradient title bar with min, max and close buttons."""
+def window_chrome(w, h, title, x=0, y=0, bar=34, body_fill=PANEL):
+    """A Y2K / XP-style window: glossy title bar with min, max and close buttons."""
     cy = y + bar / 2
     btns = ""
     for i, (gid, kind) in enumerate((("btnx", "close"), ("btn", "max"), ("btn", "min"))):
         cx = x + w - 24 - i * 28
         btns += (f'<rect x="{cx - 11:g}" y="{cy - 11:g}" width="22" height="22" rx="5" '
-                 f'fill="url(#{gid})" stroke="#fff" stroke-width="1.6"/>')
+                 f'fill="url(#{gid})" stroke="{TEXT}" stroke-width="1.4"/>')
         if kind == "close":
             btns += (f'<path d="M{cx - 4:g} {cy - 4:g}l8 8m0 -8l-8 8" stroke="#fff" '
                      'stroke-width="2.4" stroke-linecap="round"/>')
@@ -162,9 +182,9 @@ def window_chrome(w, h, title, x=0, y=0, bar=34, body_fill=VIOLET_DARK):
         else:
             btns += f'<rect x="{cx - 4.5:g}" y="{cy + 1.5:g}" width="9" height="3" fill="#fff"/>'
     gloss = (f'<path d="M{x} {y + bar / 2:g}V{y + 10}Q{x} {y} {x + 10} {y}H{x + w - 10}'
-             f'Q{x + w} {y} {x + w} {y + 10}V{y + bar / 2:g}Z" fill="#fff" opacity="0.16"/>')
+             f'Q{x + w} {y} {x + w} {y + 10}V{y + bar / 2:g}Z" fill="#fff" opacity="0.14"/>')
     return (
-        f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="10" fill="{body_fill}" stroke="#fff" stroke-width="2"/>'
+        f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="10" fill="{body_fill}" stroke="{LINE_HI}" stroke-width="2"/>'
         f'<rect x="{x}" y="{y}" width="{w}" height="{bar}" rx="10" fill="url(#bar)"/>'
         f'<rect x="{x}" y="{y + bar - 12}" width="{w}" height="12" fill="url(#bar)"/>'
         f'{gloss}'
@@ -179,12 +199,65 @@ def pill_width(text, font=13):
 
 
 def pill(x, y, text, fill_id="pill", font=13):
+    """A skill chip: dark violet body, hairline border, light text."""
     w = pill_width(text, font)
     return w, (
-        '<rect x="%d" y="%d" width="%d" height="30" rx="15" fill="url(#%s)" stroke="%s" stroke-width="1.5"/>'
-        '<text x="%d" y="%d" text-anchor="middle" font-family="%s" font-size="%d" font-weight="700" fill="%s">%s</text>'
-        % (x, y, w, fill_id, PINK, x + w / 2, y + 20, MONO, font, VIOLET_DARK, escape(text))
+        f'<rect x="{x}" y="{y}" width="{w}" height="30" rx="15" fill="url(#{fill_id})" stroke="{LINE_HI}" stroke-width="1.2"/>'
+        f'<rect x="{x + 9}" y="{y + 1.5}" width="{w - 18}" height="1" rx="0.5" fill="#fff" opacity="0.22"/>'
+        f'<text x="{x + w / 2:g}" y="{y + 20}" text-anchor="middle" font-family="{MONO}" font-size="{font}" '
+        f'font-weight="700" fill="{TEXT}">{escape(text)}</text>'
     )
+
+
+def card_style(cfg):
+    style = cfg.get("card_style", "flat")
+    if style not in CARD_STYLES:
+        sys.exit('card_style must be one of: %s (got "%s")' % (", ".join(CARD_STYLES), style))
+    return style
+
+
+def card_bg(style, w, h, seed=1):
+    """Background for a card or window body: returns (defs, markup). The caller clips the markup."""
+    defs = (
+        '<linearGradient id="panelbg" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0" stop-color="{PANEL_HI}"/><stop offset="1" stop-color="{PANEL}"/></linearGradient>'
+    )
+    base = f'<rect width="{w}" height="{h}" fill="url(#panelbg)"/>'
+    if style == "glow":  # soft violet light coming from the top-right corner
+        defs += (
+            f'<radialGradient id="cardglow" gradientUnits="userSpaceOnUse" cx="{w * 0.9:g}" cy="0" r="{w * 0.7:g}">'
+            f'<stop offset="0" stop-color="{ACCENT}" stop-opacity="0.45"/>'
+            f'<stop offset="1" stop-color="{ACCENT}" stop-opacity="0"/></radialGradient>'
+        )
+        return defs, base + f'<rect width="{w}" height="{h}" fill="url(#cardglow)"/>'
+    if style == "grid":  # hairline grid that fades out towards the bottom-right
+        step = 22
+        defs += (
+            f'<pattern id="cardgrid" width="{step}" height="{step}" patternUnits="userSpaceOnUse">'
+            f'<path d="M{step} 0H0V{step}" fill="none" stroke="{ACCENT_HI}" stroke-width="1" opacity="0.13"/></pattern>'
+            f'<linearGradient id="gridfade" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="{w}" y2="{h}">'
+            f'<stop offset="0" stop-color="{PANEL}" stop-opacity="0"/>'
+            f'<stop offset="1" stop-color="{PANEL}" stop-opacity="0.95"/></linearGradient>'
+        )
+        return defs, (base + f'<rect width="{w}" height="{h}" fill="url(#cardgrid)"/>'
+                      f'<rect width="{w}" height="{h}" fill="url(#gridfade)"/>')
+    if style == "dither":  # ordered-dither gradient: pixel dots thinning out from top to bottom
+        cell, levels = 3, 7
+        bayer = ((0, 8, 2, 10), (12, 4, 14, 6), (3, 11, 1, 9), (15, 7, 13, 5))
+        band_h = math.ceil(h / (levels + 1))
+        bands = ""
+        for k in range(levels):
+            lv = levels - k  # lv of the 16 cells of each 4x4 tile are lit
+            rects = "".join(f'<rect x="{c * cell}" y="{r * cell}" width="{cell}" height="{cell}"/>'
+                            for r in range(4) for c in range(4) if bayer[r][c] < lv)
+            defs += (f'<pattern id="dth{lv}" width="{4 * cell}" height="{4 * cell}" patternUnits="userSpaceOnUse" '
+                     f'fill="{ACCENT}" fill-opacity="0.2">{rects}</pattern>')
+            bands += f'<rect y="{k * band_h}" width="{w}" height="{band_h}" fill="url(#dth{lv})"/>'
+        return defs, base + bands
+    if style == "lowpoly":  # the original look, kept for comparison
+        return defs, (mesh(w, h, 40, MESH_CARD, seed=seed, bias=0.5)
+                      + f'<rect width="{w}" height="{h}" fill="{PANEL}" opacity="0.55"/>')
+    return defs, base  # "flat"
 
 
 # ---- assets ----------------------------------------------------------------
@@ -194,23 +267,23 @@ def build_banner(cfg):
     t = f'text-anchor="middle" font-family="{SANS}" font-size="96" font-weight="900" letter-spacing="4"'
     body = (
         f'<clipPath id="clip"><rect width="{w}" height="{h}" rx="14"/></clipPath>'
-        f'<g clip-path="url(#clip)">{mesh(w, h, 50, MESH_BRIGHT, seed=7)}'
+        f'<g clip-path="url(#clip)">{mesh(w, h, 50, MESH_HERO, seed=7)}'
         f'<rect width="{w}" height="{h}" fill="url(#vig)"/>'
-        '<rect x="-200" y="-20" width="90" height="340" fill="#fff" opacity="0.12" transform="skewX(-20)">'
+        '<rect x="-200" y="-20" width="90" height="340" fill="#fff" opacity="0.08" transform="skewX(-20)">'
         '<animate attributeName="x" values="-200;1200" dur="7s" repeatCount="indefinite"/></rect>'
-        f'{sparkles(w, h, 16, 3)}</g>'
-        f'<rect x="3" y="3" width="{w - 6}" height="{h - 6}" rx="12" fill="none" stroke="#fff" stroke-width="3" opacity="0.9"/>'
-        # chromatic split: cyan fringe left, pink fringe right, chrome title on top
+        f'{sparkles(w, h, 8, 3, 5, 11, avoid=[(300, 80, 700, 228)])}</g>'  # keep the title and tagline clear
+        f'<rect x="3" y="3" width="{w - 6}" height="{h - 6}" rx="12" fill="none" stroke="{ACCENT}" stroke-width="2.5" opacity="0.75"/>'
+        # faint chromatic split: indigo fringe left, violet fringe right, chrome title on top
         '<g filter="url(#glow)">'
-        f'<text x="495" y="159" {t} fill="{CYAN}" opacity="0.9">{name}</text>'
-        f'<text x="505" y="164" {t} fill="{PINK}" opacity="0.9">{name}</text>'
-        f'<text x="500" y="158" {t} fill="url(#chrome)" stroke="{VIOLET}" stroke-width="2.5" paint-order="stroke">{name}</text></g>'
-        f'<text x="500" y="212" text-anchor="middle" font-family="{SANS}" font-size="24" letter-spacing="3" fill="#fff">'
-        f'✦ {escape(cfg["tagline"])} ✦</text>'
+        f'<text x="497" y="159" {t} fill="#7b8cff" opacity="0.8">{name}</text>'
+        f'<text x="503" y="162" {t} fill="#b86bff" opacity="0.8">{name}</text>'
+        f'<text x="500" y="158" {t} fill="url(#chrome)" stroke="#2a1b55" stroke-width="2.5" paint-order="stroke">{name}</text></g>'
+        f'<text x="500" y="212" text-anchor="middle" font-family="{SANS}" font-size="22" letter-spacing="3" fill="{TEXT}">'
+        f'<tspan fill="{ACCENT_HI}">✦</tspan> {escape(cfg["tagline"])} <tspan fill="{ACCENT_HI}">✦</tspan></text>'
     )
     defs = CHROME_DEFS + (
         '<radialGradient id="vig" cx="0.5" cy="0.5" r="0.7"><stop offset="0.5" stop-color="#000" stop-opacity="0"/>'
-        f'<stop offset="1" stop-color="{VIOLET_DARK}" stop-opacity="0.55"/></radialGradient>'
+        f'<stop offset="1" stop-color="{INK}" stop-opacity="0.6"/></radialGradient>'
         '<filter id="glow" x="-10%" y="-30%" width="120%" height="160%">'
         '<feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
     )
@@ -231,14 +304,14 @@ def build_divider():
         bars += f'<rect x="{x - 2:.1f}" y="{22 - amp:.1f}" width="4" height="{2 * amp:.1f}" rx="2"/>'
     defs = (
         f'<linearGradient id="wave" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="{w}" y2="0">'
-        f'<stop offset="0" stop-color="{PINK}"/><stop offset="0.5" stop-color="{ORCHID}"/>'
-        f'<stop offset="1" stop-color="{ICE_BLUE}"/></linearGradient>'
+        f'<stop offset="0" stop-color="#5b43ad"/><stop offset="0.5" stop-color="{ACCENT}"/>'
+        f'<stop offset="1" stop-color="#cdbffa"/></linearGradient>'
     )
     body = (
         f'<g fill="url(#wave)">{bars}</g>'
-        + sparkle(500, 22, 15, 0, "#ffffff", 2.6)
-        + sparkle(466, 22, 6, 0.5, PINK, 2.6)
-        + sparkle(534, 22, 6, 1.0, ICE_BLUE, 2.6)
+        + sparkle(500, 22, 14, 0, "#ffffff", 2.6)
+        + sparkle(468, 22, 5, 0.5, ACCENT_HI, 2.6)
+        + sparkle(532, 22, 5, 1.0, ACCENT_HI, 2.6)
     )
     write("divider.svg", svg(w, h, body, defs))
 
@@ -255,7 +328,7 @@ def fade_track(i, n, f):
 
 
 def screen(cfg, x, y, size):
-    """The art 'screen': neon glow, white frame, crossfading pictures, CRT scanlines and glare."""
+    """The art 'screen': soft violet halo, frame, crossfading pictures, CRT scanlines and glare."""
     pad = 6
     ix, iy, inner = x + pad, y + pad, size - 2 * pad
     arts = []
@@ -279,15 +352,13 @@ def screen(cfg, x, y, size):
                     f'opacity="{1 if i == 0 else 0}" href="{data_uri(ROOT / a)}">{anim}</image>')
     else:  # placeholder until some art is configured
         art = (f'<svg x="{ix}" y="{iy}" width="{inner}" height="{inner}" viewBox="0 0 {inner} {inner}">'
-               f'{mesh(inner, inner, 34, MESH_BRIGHT, seed=21, bias=0.4)}'
+               f'{mesh(inner, inner, 34, MESH_HERO, seed=21, bias=0.4)}'
                f'<text x="{inner // 2}" y="{inner // 2 + 5}" text-anchor="middle" font-family="{SANS}" '
-               'font-size="16" fill="#fff">your art here</text></svg>')
+               f'font-size="16" fill="{TEXT}">your art here</text></svg>')
     return (
-        # two-tone neon halo: cyan up-left, pink down-right
         '<g filter="url(#neon)" fill="none" stroke-width="9">'
-        f'<rect x="{x - 3}" y="{y - 3}" width="{size}" height="{size}" rx="12" stroke="{CYAN}" opacity="0.55"/>'
-        f'<rect x="{x + 3}" y="{y + 3}" width="{size}" height="{size}" rx="12" stroke="{PINK}" opacity="0.8"/></g>'
-        f'<rect x="{x}" y="{y}" width="{size}" height="{size}" rx="12" fill="#0b0418" stroke="#fff" stroke-width="3"/>'
+        f'<rect x="{x}" y="{y}" width="{size}" height="{size}" rx="12" stroke="{ACCENT}" opacity="0.7"/></g>'
+        f'<rect x="{x}" y="{y}" width="{size}" height="{size}" rx="12" fill="{INK}" stroke="{TEXT}" stroke-width="2.5"/>'
         f'<clipPath id="screenclip"><rect x="{ix}" y="{iy}" width="{inner}" height="{inner}" rx="7"/></clipPath>'
         f'<g clip-path="url(#screenclip)">{art}'
         f'<rect x="{ix}" y="{iy}" width="{inner}" height="{inner}" fill="url(#scan)"/>'
@@ -296,13 +367,13 @@ def screen(cfg, x, y, size):
 
 
 def menu_bar(x, y, w, h):
-    """Dark-lilac menu strip (File View Play Tools Help) under the title bar."""
-    out = (f'<rect x="{x + 1}" y="{y}" width="{w - 2}" height="{h}" fill="#34196a"/>'
-           f'<rect x="{x + 1}" y="{y + h - 1}" width="{w - 2}" height="1" fill="{PURPLE}"/>')
+    """Menu strip (File View Play Tools Help) under the title bar."""
+    out = (f'<rect x="{x + 1}" y="{y}" width="{w - 2}" height="{h}" fill="{PANEL_HI}"/>'
+           f'<rect x="{x + 1}" y="{y + h - 1}" width="{w - 2}" height="1" fill="{LINE}"/>')
     tx = x + 16
     for item in ("File", "View", "Play", "Tools", "Help"):
-        out += (f'<text x="{tx}" y="{y + 17}" font-family="{SANS}" font-size="13" fill="{LAVENDER}">{item}</text>'
-                f'<rect x="{tx}" y="{y + 19}" width="7" height="1" fill="{LAVENDER}"/>')  # XP-style mnemonic underline
+        out += (f'<text x="{tx}" y="{y + 17}" font-family="{SANS}" font-size="13" fill="{MUTED}">{item}</text>'
+                f'<rect x="{tx}" y="{y + 19}" width="7" height="1" fill="{MUTED}"/>')  # XP-style mnemonic underline
         tx += len(item) * 8 + 22
     return out
 
@@ -312,25 +383,25 @@ def control_bar(x, y, w, h):
     cy = y + h // 2 + 1
     o = [
         f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="url(#ctrl)"/>',
-        f'<rect x="{x}" y="{y}" width="{w}" height="2" fill="{ORCHID}" opacity="0.55"/>',
+        f'<rect x="{x}" y="{y}" width="{w}" height="2" fill="{LINE_HI}" opacity="0.7"/>',
     ]
     # play
     px = x + 46
     o += [
-        f'<circle cx="{px}" cy="{cy}" r="19" fill="url(#playbtn)" stroke="#fff" stroke-width="2"/>',
-        f'<ellipse cx="{px}" cy="{cy - 8}" rx="13" ry="7" fill="#fff" opacity="0.35"/>',
+        f'<circle cx="{px}" cy="{cy}" r="19" fill="url(#playbtn)" stroke="{TEXT}" stroke-width="2"/>',
+        f'<ellipse cx="{px}" cy="{cy - 8}" rx="13" ry="7" fill="#fff" opacity="0.28"/>',
         f'<path d="M{px - 5} {cy - 8}l13 8l-13 8z" fill="#fff"/>',
     ]
     # stop
     sx = x + 94
     o += [
-        f'<circle cx="{sx}" cy="{cy}" r="12" fill="url(#btn)" stroke="#fff" stroke-width="1.6"/>',
+        f'<circle cx="{sx}" cy="{cy}" r="12" fill="url(#btn)" stroke="{TEXT}" stroke-width="1.4"/>',
         f'<rect x="{sx - 4}" y="{cy - 4}" width="8" height="8" rx="1" fill="#fff"/>',
     ]
     # previous / next
     for bx, s in ((x + 140, -1), (x + 182, 1)):
         o += [
-            f'<rect x="{bx - 16}" y="{cy - 11}" width="32" height="22" rx="11" fill="url(#btn)" stroke="#fff" stroke-width="1.6"/>',
+            f'<rect x="{bx - 16}" y="{cy - 11}" width="32" height="22" rx="11" fill="url(#btn)" stroke="{TEXT}" stroke-width="1.4"/>',
             f'<path d="M{bx + s * 6} {cy - 5}V{cy + 5}" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>',
             f'<path d="M{bx - s * 5} {cy - 5}L{bx + s * 3} {cy}L{bx - s * 5} {cy + 5}z" fill="#fff"/>',
         ]
@@ -338,10 +409,10 @@ def control_bar(x, y, w, h):
     x0, span = x + 235, 405
     done = round(span * 0.3)
     o += [
-        f'<rect x="{x0}" y="{cy - 4}" width="{span}" height="8" rx="4" fill="#10052a" stroke="{PURPLE}" stroke-width="1.5"/>',
+        f'<rect x="{x0}" y="{cy - 4}" width="{span}" height="8" rx="4" fill="{INK}" stroke="{LINE}" stroke-width="1.5"/>',
         f'<rect x="{x0}" y="{cy - 4}" width="{done}" height="8" rx="4" fill="url(#seekfill)">'
         f'<animate attributeName="width" values="0;{span}" dur="40s" begin="-12s" repeatCount="indefinite"/></rect>',
-        f'<circle cx="{x0 + done}" cy="{cy}" r="8" fill="url(#knob)" stroke="#fff" stroke-width="2">'
+        f'<circle cx="{x0 + done}" cy="{cy}" r="8" fill="url(#knob)" stroke="{TEXT}" stroke-width="1.6">'
         f'<animate attributeName="cx" values="{x0};{x0 + span}" dur="40s" begin="-12s" repeatCount="indefinite"/></circle>',
     ]
     # equalizer
@@ -354,18 +425,18 @@ def control_bar(x, y, w, h):
         hv = ";".join(str(v) for v in hs)
         yv = ";".join(str(base - v) for v in hs)
         o.append(
-            f'<rect x="{x + 676 + 9 * k}" y="{base - hs[0]}" width="6" height="{hs[0]}" rx="2" fill="{LIME}">'
+            f'<rect x="{x + 676 + 9 * k}" y="{base - hs[0]}" width="6" height="{hs[0]}" rx="2" fill="url(#eq)">'
             f'<animate attributeName="height" values="{hv}" dur="{dur}s" begin="{begin}s" repeatCount="indefinite"/>'
             f'<animate attributeName="y" values="{yv}" dur="{dur}s" begin="{begin}s" repeatCount="indefinite"/></rect>'
         )
     # volume
     vx = x + 796
     o += [
-        f'<path d="M{vx} {cy - 4}h4l6 -5v18l-6 -5h-4z" fill="{ICE}"/>',
-        f'<path d="M{vx + 13} {cy - 5}q5 5 0 10" fill="none" stroke="{ICE}" stroke-width="2" stroke-linecap="round"/>',
-        f'<rect x="{x + 818}" y="{cy - 3}" width="112" height="6" rx="3" fill="#10052a" stroke="{PURPLE}" stroke-width="1.2"/>',
-        f'<rect x="{x + 818}" y="{cy - 3}" width="78" height="6" rx="3" fill="{LIME}"/>',
-        f'<circle cx="{x + 896}" cy="{cy}" r="6.5" fill="#fff" stroke="{ORCHID}" stroke-width="1.5"/>',
+        f'<path d="M{vx} {cy - 4}h4l6 -5v18l-6 -5h-4z" fill="{TEXT}"/>',
+        f'<path d="M{vx + 13} {cy - 5}q5 5 0 10" fill="none" stroke="{TEXT}" stroke-width="2" stroke-linecap="round"/>',
+        f'<rect x="{x + 818}" y="{cy - 3}" width="112" height="6" rx="3" fill="{INK}" stroke="{LINE}" stroke-width="1.2"/>',
+        f'<rect x="{x + 818}" y="{cy - 3}" width="78" height="6" rx="3" fill="{ACCENT}"/>',
+        f'<circle cx="{x + 896}" cy="{cy}" r="6.5" fill="#fff" stroke="{LINE_HI}" stroke-width="1.5"/>',
     ]
     return "".join(o)
 
@@ -389,7 +460,7 @@ def build_about(cfg):
     size = 240
     sy = round(mid - size / 2)
 
-    glyphs = (("♡", PINK_SOFT), ("★", ICE_BLUE), ("✧", LAVENDER), ("♪", PINK_SOFT))
+    glyphs = (("♡", ACCENT_HI), ("★", "#d8ccfa"), ("✧", ACCENT_HI), ("♪", "#d8ccfa"))
     rows = wrap_bullets(cfg["bio"], 46)
     pitch = 36
     title_y = max(top + 38, round(mid - 18 - 18 * (len(rows) - 1)))
@@ -400,9 +471,9 @@ def build_about(cfg):
         if first:
             glyph, color = glyphs[idx % len(glyphs)]
             bio += f'<text x="48" y="{y}" font-family="{SANS}" font-size="21" fill="{color}">{glyph}</text>'
-        bio += f'<text x="80" y="{y}" font-family="{MONO}" font-size="21" fill="{ICE}">{escape(chunk)}</text>'
+        bio += f'<text x="80" y="{y}" font-family="{MONO}" font-size="21" fill="{TEXT}">{escape(chunk)}</text>'
     title = (f'<text x="48" y="{title_y}" font-family="{SANS}" font-size="34" font-weight="800" fill="url(#chrome)" '
-             f'stroke="{PURPLE}" stroke-width="1" paint-order="stroke">hi, i\'m {escape(cfg["name"])} ✧</text>')
+             f'stroke="#2a1b55" stroke-width="1" paint-order="stroke">hi, i\'m {escape(cfg["name"])} ✧</text>')
 
     defs = CHROME_DEFS + CONTROL_DEFS + (
         f'<clipPath id="winclip"><rect x="{wx}" y="{wy}" width="{ww}" height="{wh}" rx="10"/></clipPath>'
@@ -416,11 +487,10 @@ def build_about(cfg):
         + title + bio
         + screen(cfg, 716, sy, size)
         + f'<g clip-path="url(#winclip)">{control_bar(wx, wy + wh - ctrl_h, ww, ctrl_h)}</g>'
-        + f'<rect x="{wx}" y="{wy}" width="{ww}" height="{wh}" rx="10" fill="none" stroke="#fff" stroke-width="2"/>'
-        + sparkle(960, sy - 2, 13, 0.3, "#ffffff", 3.2)
-        + line_sparkle(708, sy + size + 4, 16, 1.0, ICE_BLUE)
-        + sparkle(694, 150, 6, 1.6, PINK_SOFT, 2.8)
-        + line_sparkle(962, sy + size - 8, 11, 2.0)
+        + f'<rect x="{wx}" y="{wy}" width="{ww}" height="{wh}" rx="10" fill="none" stroke="{LINE_HI}" stroke-width="2"/>'
+        + sparkle(960, sy - 2, 12, 0.3, "#ffffff", 3.2)
+        + line_sparkle(708, sy + size + 4, 15, 1.0, ACCENT_HI)
+        + sparkle(694, 150, 5, 1.6, ACCENT_HI, 2.8)
     )
     write("about-window.svg", svg(w, h, body, defs))
 
@@ -430,8 +500,9 @@ def build_skills(cfg):
 
     Cards that share a row share a height. Returns [(category, filename, is_wide)].
     """
+    style = card_style(cfg)
     cats = list(cfg["skills"].items())
-    fills = ["pill", "pillp", "pilli"]
+    fills = ["pill", "pill2", "pill3"]
     cards = []
     for idx, (cat, items) in enumerate(cats):
         wide = len(cats) % 2 == 1 and idx == len(cats) - 1
@@ -447,37 +518,26 @@ def build_skills(cfg):
     row_h = {}
     for c in cards:
         row_h[c["row"]] = max(row_h.get(c["row"], 0), c["h"])
-    defs = CHROME_DEFS + (
-        '<linearGradient id="pillp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/>'
-        '<stop offset="0.5" stop-color="%s"/><stop offset="1" stop-color="%s"/></linearGradient>'
-        '<linearGradient id="pilli" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/>'
-        '<stop offset="0.5" stop-color="%s"/><stop offset="1" stop-color="%s"/></linearGradient>'
-        % (PINK_SOFT, PINK, ICE, ICE_BLUE)
-    )
     out = []
     for c in cards:
         cat, w, h = c["cat"], c["w"], row_h[c["row"]]
+        bg_defs, bg = card_bg(style, w, h, seed=hash_seed(cat))
         full = (
-            '<clipPath id="clip"><rect x="2" y="2" width="%d" height="%d" rx="12"/></clipPath>'
-            '<g clip-path="url(#clip)">%s<rect width="%d" height="%d" fill="%s" opacity="0.55"/></g>'
-            '<rect x="2" y="2" width="%d" height="%d" rx="12" fill="none" stroke="%s" stroke-width="2"/>'
-            '<text x="28" y="36" font-family="%s" font-size="21" font-weight="800" fill="url(#chrome)" '
-            'stroke="%s" stroke-width="0.8" paint-order="stroke">✦ %s</text>%s%s'
-            % (w - 4, h - 4, mesh(w, h, 44, MESH_DARK, seed=hash_seed(cat)), w, h, VIOLET_DARK,
-               w - 4, h - 4, ORCHID, SANS, PURPLE, escape(cat.lower()), c["body"],
-               sparkles(w, h, 2, hash_seed(cat) + 1, 4, 8, box=(w * 0.6, 10, w - 20, 40)))
+            f'<clipPath id="clip"><rect x="2" y="2" width="{w - 4}" height="{h - 4}" rx="12"/></clipPath>'
+            f'<g clip-path="url(#clip)">{bg}'
+            f'<rect x="12" y="2.5" width="{w - 24}" height="1" fill="#fff" opacity="0.1"/></g>'
+            f'<rect x="2" y="2" width="{w - 4}" height="{h - 4}" rx="12" fill="none" stroke="{LINE}" stroke-width="2"/>'
+            f'<text x="28" y="37" font-family="{SANS}" font-size="20" font-weight="700" letter-spacing="0.5" fill="{TEXT}">'
+            f'<tspan fill="{ACCENT_HI}">✦</tspan> {escape(cat.lower())}</text>{c["body"]}'
         )
         name = "skills-%s.svg" % slug(cat)
-        write(name, svg(w, h, full, defs))
+        write(name, svg(w, h, full, CHROME_DEFS + bg_defs))
         out.append((cat, name, c["wide"]))
     return out
 
 
-def hash_seed(s):
-    return sum(ord(c) * (i + 1) for i, c in enumerate(s))
-
-
 def build_projects(cfg):
+    style = card_style(cfg)
     w, h = 480, 200
     out = []
     for i, p in enumerate(cfg["projects"]):
@@ -490,17 +550,16 @@ def build_projects(cfg):
                 break
             tags += pill(x, 154, t, "pill", 12)[1]
             x += pw + 8
+        bg_defs, bg = card_bg(style, w, h, seed=40 + i)
+        title = p["name"] + ".exe"
         body = (
-            '<clipPath id="clip"><rect x="3" y="3" width="%d" height="%d" rx="9"/></clipPath>'
-            '<g clip-path="url(#clip)">%s<rect width="%d" height="%d" fill="%s" opacity="0.62"/></g>'
-            "%s"
-            '<text font-family="%s" font-size="14" fill="%s">%s</text>%s%s'
-            % (w - 6, h - 6, mesh(w, h, 40, MESH_DARK, seed=40 + i, bias=0.5), w, h, VIOLET_DARK,
-               window_chrome(w, h, "%s.exe" % p["name"], 0, 0, 34, body_fill="none"),
-               MONO, ICE, dt, tags, sparkles(w, h, 2, 90 + i, 4, 8, box=(400, 50, 465, 135)))
+            f'<clipPath id="clip"><rect x="3" y="3" width="{w - 6}" height="{h - 6}" rx="9"/></clipPath>'
+            f'<g clip-path="url(#clip)">{bg}</g>'
+            f'{window_chrome(w, h, title, 0, 0, 34, body_fill="none")}'
+            f'<text font-family="{MONO}" font-size="14" fill="{TEXT}">{dt}</text>{tags}'
         )
         name = "project-%d.svg" % (i + 1)
-        write(name, svg(w, h, body, CHROME_DEFS))
+        write(name, svg(w, h, body, CHROME_DEFS + bg_defs))
         out.append((p, name))
     return out
 
@@ -511,9 +570,9 @@ def build_links(cfg):
         label = ln["label"]
         w = int(len(label) * 15 * MONO_W + 70)
         body = (
-            '<rect x="2" y="2" width="%d" height="40" rx="20" fill="url(#pill)" stroke="%s" stroke-width="2.5"/>'
-            '<text x="%d" y="28" text-anchor="middle" font-family="%s" font-size="16" font-weight="800" fill="%s">♡ %s ♡</text>'
-            % (w - 4, PINK, w // 2, MONO, VIOLET_DARK, escape(label))
+            f'<rect x="2" y="2" width="{w - 4}" height="40" rx="20" fill="url(#pill)" stroke="{LINE_HI}" stroke-width="1.5"/>'
+            f'<text x="{w // 2}" y="28" text-anchor="middle" font-family="{MONO}" font-size="16" font-weight="800" '
+            f'fill="{TEXT}">{escape(label)}</text>'
         )
         name = "link-%s.svg" % slug(label)
         write(name, svg(w, 44, body, CHROME_DEFS))
@@ -525,10 +584,10 @@ def build_footer():
     w, h = 1000, 130
     body = (
         f'<clipPath id="clip"><rect width="{w}" height="{h}" rx="14"/></clipPath>'
-        f'<g clip-path="url(#clip)">{mesh(w, h, 50, list(reversed(MESH_BRIGHT)), seed=99)}{sparkles(w, h, 10, 5)}</g>'
-        f'<rect x="3" y="3" width="{w - 6}" height="{h - 6}" rx="12" fill="none" stroke="#fff" stroke-width="3" opacity="0.9"/>'
+        f'<g clip-path="url(#clip)">{mesh(w, h, 50, list(reversed(MESH_HERO)), seed=99)}{sparkles(w, h, 6, 5, 5, 11, avoid=[(270, 40, 730, 100)])}</g>'
+        f'<rect x="3" y="3" width="{w - 6}" height="{h - 6}" rx="12" fill="none" stroke="{ACCENT}" stroke-width="2.5" opacity="0.75"/>'
         f'<text x="500" y="77" text-anchor="middle" font-family="{SANS}" font-size="30" font-weight="900" '
-        f'fill="url(#chrome)" stroke="{PURPLE}" stroke-width="1.5" paint-order="stroke">thanks for stopping by ♡</text>'
+        f'fill="url(#chrome)" stroke="#2a1b55" stroke-width="1.5" paint-order="stroke">thanks for stopping by ♡</text>'
     )
     write("footer.svg", svg(w, h, body, CHROME_DEFS))
 
@@ -573,6 +632,7 @@ def build_readme(cfg, skills, projects, links):
 def main():
     cfg = json.loads((ROOT / "profile.config.json").read_text(encoding="utf-8"))
     print("building assets...")
+    card_style(cfg)  # fail early on a typo
     # drop generated files from a previous run so removed skills/projects don't linger
     for pattern in ("skills-*.svg", "project-*.svg", "link-*.svg"):
         for stale in ASSETS.glob(pattern):
